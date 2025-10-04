@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    environment {
+        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git(
+                    url: 'https://github.com/brayan2991brayan/playwright-tests',
+                    branch: 'main',
+                    credentialsId: 'JenkinsTestarudoToken'
+                )
+            }
+        }
+
+        stage('Check Node') {
+            steps {
+                sh 'which node || echo "Node not found"'
+                sh 'which npm || echo "NPM not found"'
+                sh 'node -v || echo "Node command failed"'
+                sh 'npm -v || echo "NPM command failed"'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm ci || npm install --force'
+                sh 'npx playwright install --with-deps'
+            }
+        }
+
+        stage('Execute Tests') {
+            steps {
+                sh 'npx playwright test'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished. Cleaning up...'
+            archiveArtifacts artifacts: '**/playwright-report/**', allowEmptyArchive: true
+        }
+    }
+}
